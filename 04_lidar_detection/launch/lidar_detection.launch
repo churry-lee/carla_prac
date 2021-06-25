@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <!-- CARLA connection -->
+    <arg name='host' default='localhost'/>
+    <arg name='port' default='2000'/>
+    <arg name='timeout' default='10'/>
+    <!-- Map to load on startup (either a predefined CARLA town (e.g. 'Town01'), or a OpenDRIVE map file) -->
+    <arg name="town" default='Town05'/>
+
+    <!-- Ego vehicle -->
+    <arg name="objects_definition_file" default="$(find lidar_detection)/config/objects.json"/>
+    <!-- use comma separated format "x,y,z,roll,pitch,yaw" -->
+    <arg name='spawn_x' default='3.1' />
+    <arg name='spawn_y' default='32.7' />
+    <arg name='spawn_yaw' default='180.0' />
+    <arg name="spawn_point_ego_vehicle" default="$(arg spawn_x), $(arg spawn_y), 0.5, 0.0, 0.0, $(arg spawn_yaw)" />
+    <arg name="spawn_ego_vehicle" default="False" />
+    <arg name="spawn_sensors_only" default="False"/>
+
+    <include file="$(find carla_ros_bridge)/launch/carla_ros_bridge.launch">
+        <arg name='host' value='$(arg host)'/>
+        <arg name='port' value='$(arg port)'/>
+        <arg name='town' value='$(arg town)'/>
+        <arg name='timeout' value='$(arg timeout)'/>
+    </include>
+
+    <!-- the ego vehicle, that will be controlled by an agent (e.g. carla_ad_agent) -->
+    <node pkg="carla_spawn_objects" type="carla_spawn_objects.py" name="$(anon carla_spawn_objects)" output="screen">
+        <param name="objects_definition_file" value="$(arg objects_definition_file)" />
+        <param name="spawn_point_ego_vehicle" value="$(arg spawn_point_ego_vehicle)" />
+        <param name="spawn_sensors_only" value="$(arg spawn_sensors_only)" />
+    </node>
+    
+    <include file="$(find carla_manual_control)/launch/carla_manual_control.launch">
+        <arg name='role_name' value='ego_vehicle'/>
+    </include>
+    <!-- rviz display -->
+    <node name="rviz_visualizer" pkg="rviz" type="rviz" required="false" 
+                args="-d $(find lidar_detection)/rviz/default.rviz"/>
+    <node name='ego_camera' pkg='my_ego_vehicle' type='ego_camera.py'/>
+    <node name='ego_marker' pkg='my_ego_vehicle' type='ego_marker.py'/>
+</launch>
